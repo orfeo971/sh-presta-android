@@ -1,0 +1,23 @@
+name: SH Presta APK
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**/*.md", "docs/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    # Procédure commune à toutes les applications Android (tests, APK signé, Release « shpresta-v0.1.N »).
+    # Référencée par commit (updater-v1.0.2) en attendant que l'étiquette v1 soit déplacée sur cette version.
+    uses: orfeo971/orfeo-android-commun/.github/workflows/apk-android.yml@05b15d68489902e4f9f4c963d08f8f850693db57
+    with:
+      app-name: SH-Presta
+      tag-prefix: shpresta-v
+      version-prefix: "0.1"
+      keystore-file: shpresta-signing.jks
+      release-body: "Sur le téléphone : Réglages › Mises à jour, ou télécharger le fichier SH-Presta-….apk ci-dessous puis l'ouvrir."
+    secrets: inherit

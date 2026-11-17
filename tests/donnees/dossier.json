@@ -1,0 +1,281 @@
+{
+ "genere_le": "2026-11-17T03:11:24.459Z",
+ "intervention": {
+  "id": 1,
+  "date": "2026-11-16T00:00:00.000Z",
+  "heure_prevue": "10:00:00",
+  "prestataire_id": 1,
+  "datacenter": "Datacenter Jarry",
+  "ticket_hebergeur": "TCK-48211",
+  "commentaires": "Badge à retirer à l'accueil",
+  "statut": "planifiee",
+  "inclut_cartouches": true,
+  "inclut_verification": true,
+  "inclut_anomalies_ponctuelles": true,
+  "operation_ponctuelle_intitule": "Remplacement d'un câble de la baie 3",
+  "ponctuelle_materiel_a_recuperer": true,
+  "ponctuelle_materiel_a_ramener": true,
+  "verification_rien_a_signaler": false,
+  "created_by": null,
+  "created_at": "2026-11-17T03:02:31.341Z",
+  "updated_at": "2026-11-17T03:02:31.341Z",
+  "prestataire_nom": "Smart Hands Solutions"
+ },
+ "etapes": [],
+ "materielPrevu": [
+  {
+   "id": 1,
+   "cartouche_id": 11,
+   "ajoute_le": "2026-11-17T03:02:31.344Z",
+   "recupere_le": null,
+   "emplacement_prevu_id": 6,
+   "cartouche_reference": "SRQ011L9",
+   "cartouche_etat": "preparee",
+   "emplacement_prevu_code": "SLOT-06",
+   "emplacement_prevu_type": "ts4300_magasin1"
+  },
+  {
+   "id": 2,
+   "cartouche_id": 12,
+   "ajoute_le": "2026-11-17T03:02:31.344Z",
+   "recupere_le": null,
+   "emplacement_prevu_id": 7,
+   "cartouche_reference": "SRQ012L9",
+   "cartouche_etat": "preparee",
+   "emplacement_prevu_code": "SLOT-07",
+   "emplacement_prevu_type": "ts4300_magasin1"
+  },
+  {
+   "id": 3,
+   "cartouche_id": 13,
+   "ajoute_le": "2026-11-17T03:02:31.344Z",
+   "recupere_le": null,
+   "emplacement_prevu_id": 8,
+   "cartouche_reference": "SRQ013L9",
+   "cartouche_etat": "preparee",
+   "emplacement_prevu_code": "SLOT-08",
+   "emplacement_prevu_type": "ts4300_magasin1"
+  }
+ ],
+ "materielPonctuel": [
+  {
+   "id": 1,
+   "intervention_id": 1,
+   "intitule": "Câble fibre LC-LC 3 m",
+   "quantite": 2,
+   "a_recuperer": true,
+   "a_ramener": false,
+   "recupere_le": null,
+   "utilise_le": null,
+   "restitue_le": null,
+   "created_at": "2026-11-17T03:02:31.346Z"
+  },
+  {
+   "id": 2,
+   "intervention_id": 1,
+   "intitule": "Ancien câble défectueux",
+   "quantite": 1,
+   "a_recuperer": false,
+   "a_ramener": true,
+   "recupere_le": null,
+   "utilise_le": null,
+   "restitue_le": null,
+   "created_at": "2026-11-17T03:02:31.346Z"
+  }
+ ],
+ "mouvements": [],
+ "aRestituer": [],
+ "retraitsPrevus": [
+  {
+   "id": 1,
+   "cartouche_id": 1,
+   "cartouche_reference": "SRQ001L9"
+  },
+  {
+   "id": 2,
+   "cartouche_id": 2,
+   "cartouche_reference": "SRQ002L9"
+  }
+ ],
+ "controles": {
+  "rienASignaler": false,
+  "signalements": []
+ },
+ "anomalies": [],
+ "emplacements": [
+  {
+   "id": 1,
+   "type": "ts4300_magasin1",
+   "code_emplacement": "SLOT-01",
+   "cartouche_id": 1,
+   "cartouche_reference": "SRQ001L9",
+   "cartouche_etat": "ts4300"
+  },
+  {
+   "id": 2,
+   "type": "ts4300_magasin1",
+   "code_emplacement": "SLOT-02",
+   "cartouche_id": 2,
+   "cartouche_reference": "SRQ002L9",
+   "cartouche_etat": "ts4300"
+  },
+  {
+   "id": 3,
+   "type": "ts4300_magasin1",
+   "code_emplacement": "SLOT-03",
+   "cartouche_id": 3,
+   "cartouche_reference": "SRQ003L9",
+   "cartouche_etat": "ts4300"
+  },
+  {
+   "id": 4,
+   "type": "ts4300_magasin1",
+   "code_emplacement": "SLOT-04",
+   "cartouche_id": 4,
+   "cartouche_reference": "SRQ004L9",
+   "cartouche_etat": "ts4300"
+  },
+  {
+   "id": 5,
+   "type": "ts4300_magasin1",
+   "code_emplacement": "SLOT-05",
+   "cartouche_id": 5,
+   "cartouche_reference": "SRQ005L9",
+   "cartouche_etat": "ts4300"
+  },
+  {
+   "id": 6,
+   "type": "ts4300_magasin1",
+   "code_emplacement": "SLOT-06",
+   "cartouche_id": null,
+   "cartouche_reference": null,
+   "cartouche_etat": null
+  },
+  {
+   "id": 7,
+   "type": "ts4300_magasin1",
+   "code_emplacement": "SLOT-07",
+   "cartouche_id": null,
+   "cartouche_reference": null,
+   "cartouche_etat": null
+  },
+  {
+   "id": 8,
+   "type": "ts4300_magasin1",
+   "code_emplacement": "SLOT-08",
+   "cartouche_id": null,
+   "cartouche_reference": null,
+   "cartouche_etat": null
+  },
+  {
+   "id": 9,
+   "type": "ts4300_magasin1",
+   "code_emplacement": "SLOT-09",
+   "cartouche_id": null,
+   "cartouche_reference": null,
+   "cartouche_etat": null
+  },
+  {
+   "id": 10,
+   "type": "ts4300_magasin1",
+   "code_emplacement": "SLOT-10",
+   "cartouche_id": null,
+   "cartouche_reference": null,
+   "cartouche_etat": null
+  },
+  {
+   "id": 11,
+   "type": "ts4300_magasin2",
+   "code_emplacement": "SLOT-01",
+   "cartouche_id": 6,
+   "cartouche_reference": "SRQ006L9",
+   "cartouche_etat": "ts4300"
+  },
+  {
+   "id": 12,
+   "type": "ts4300_magasin2",
+   "code_emplacement": "SLOT-02",
+   "cartouche_id": 7,
+   "cartouche_reference": "SRQ007L9",
+   "cartouche_etat": "ts4300"
+  },
+  {
+   "id": 13,
+   "type": "ts4300_magasin2",
+   "code_emplacement": "SLOT-03",
+   "cartouche_id": 8,
+   "cartouche_reference": "SRQ008L9",
+   "cartouche_etat": "ts4300"
+  },
+  {
+   "id": 14,
+   "type": "ts4300_magasin2",
+   "code_emplacement": "SLOT-04",
+   "cartouche_id": null,
+   "cartouche_reference": null,
+   "cartouche_etat": null
+  },
+  {
+   "id": 15,
+   "type": "ts4300_magasin2",
+   "code_emplacement": "SLOT-05",
+   "cartouche_id": null,
+   "cartouche_reference": null,
+   "cartouche_etat": null
+  },
+  {
+   "id": 16,
+   "type": "ts4300_magasin2",
+   "code_emplacement": "SLOT-06",
+   "cartouche_id": null,
+   "cartouche_reference": null,
+   "cartouche_etat": null
+  },
+  {
+   "id": 17,
+   "type": "ts4300_magasin2",
+   "code_emplacement": "SLOT-07",
+   "cartouche_id": null,
+   "cartouche_reference": null,
+   "cartouche_etat": null
+  },
+  {
+   "id": 18,
+   "type": "ts4300_magasin2",
+   "code_emplacement": "SLOT-08",
+   "cartouche_id": null,
+   "cartouche_reference": null,
+   "cartouche_etat": null
+  },
+  {
+   "id": 19,
+   "type": "ts4300_magasin2",
+   "code_emplacement": "SLOT-09",
+   "cartouche_id": null,
+   "cartouche_reference": null,
+   "cartouche_etat": null
+  },
+  {
+   "id": 20,
+   "type": "ts4300_magasin2",
+   "code_emplacement": "SLOT-10",
+   "cartouche_id": null,
+   "cartouche_reference": null,
+   "cartouche_etat": null
+  }
+ ],
+ "acces": [
+  {
+   "id": 1,
+   "intervention_id": 1,
+   "date": "2026-11-16T00:00:00.000Z",
+   "heure": "09:45:00",
+   "intervenant": "Jean Prestataire",
+   "ticket_hebergeur": "TCK-48211",
+   "statut": "ticket_communique",
+   "created_at": "2026-11-17T03:02:31.346Z",
+   "updated_at": "2026-11-17T03:02:31.346Z"
+  }
+ ],
+ "rapport": null
+}

@@ -1,0 +1,30 @@
+{
+  "name": "sh-presta-android",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SH Presta Terrain : application Android du prestataire Smart Hands (interventions au datacenter, hors connexion)",
+  "scripts": {
+    "serve": "node scripts/build.js && npx --yes http-server build -p 8080 -c-1",
+    "test": "node --test tests/*.test.mjs",
+    "build": "node scripts/build.js",
+    "sync": "node scripts/build.js && cap sync android"
+  },
+  "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "10.0.0",
+    "@capacitor-mlkit/barcode-scanning": "8.2.2",
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/camera": "8.2.6",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/local-notifications": "8.3.1",
+    "@capacitor/network": "8.0.1",
+    "@capacitor/preferences": "8.0.1",
+    "@orfeo/updater": "github:orfeo971/orfeo-android-commun#updater-v1.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3",
+    "esbuild": "0.28.2"
+  }
+}

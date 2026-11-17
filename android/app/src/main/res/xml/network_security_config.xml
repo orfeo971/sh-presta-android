@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Le serveur SH Presta est aujourd'hui servi en HTTP simple sur le réseau de l'entreprise (VPN).
+     Android ne permet pas de limiter le HTTP à une adresse choisie après l'installation : il est donc
+     autorisé ici, et c'est l'application qui refuse le HTTP vers toute adresse publique
+     (www/js/adresse.js). Quand le serveur passera en HTTPS, mettre cleartextTrafficPermitted à false. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

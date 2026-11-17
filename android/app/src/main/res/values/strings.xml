@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SH Presta</string>
+    <string name="title_activity_main">SH Presta</string>
+    <string name="package_name">fr.orfeo.shpresta</string>
+    <string name="custom_url_scheme">fr.orfeo.shpresta</string>
+</resources>

@@ -1,0 +1,12 @@
+{
+  "appId": "fr.orfeo.shpresta",
+  "appName": "SH Presta",
+  "webDir": "build",
+  "server": { "androidScheme": "http" },
+  "android": { "backgroundColor": "#F4F6F9" },
+  "plugins": {
+    "LocalNotifications": { "iconColor": "#1F5FAE" },
+    "SystemBars": { "insetsHandling": "css" },
+    "CapacitorHttp": { "enabled": false }
+  }
+}
