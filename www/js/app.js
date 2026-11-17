@@ -460,13 +460,34 @@ function corpsRetour(v, e) {
 }
 
 /* ----- réglages ----- */
+/* serveur : adresse, état, test ; affiché connecté ou non */
+function carteServeur(boutonsCompte) {
+  const r = etat.reglages;
+  const etatServeur = !r.adresse ? "" : etat.joignable === true ? ` · <span class="vert">joignable</span>` : etat.joignable === false || !etat.reseau ? ` · <span class="orange">injoignable</span>` : "";
+  return `<p class="note">Serveur : <span class="mono">${esc(r.adresse || "non renseigné")}</span>${etatServeur}</p>`
+    + `<div class="actions">${r.adresse ? `<button class="btn" data-act="tester-serveur">Tester</button>` : ""}<button class="btn" data-act="changer-adresse">${r.adresse ? "Changer de serveur" : "Renseigner le serveur"}</button>${boutonsCompte || ""}</div>`;
+}
+
+/* avant la connexion : seulement ce qui ne dépend pas d'un compte (mises à jour, serveur, scanner) */
+function ecranReglagesSansCompte() {
+  let h = carteEtat(maj);
+  h += `<h2>Serveur</h2><div class="card">${carteServeur()}<p class="note">Le compte, les actions en attente, le verrouillage et les notifications sont disponibles une fois connecté.</p></div>`;
+  h += blocScanner() + sectionReglages(maj);
+  if (etat.reglages.adresse) h += `<div class="actions"><button class="btn primary large" data-act="retour">Aller à la connexion</button></div>`;
+  return h + `<p class="note centre">SH Presta Terrain ${esc(maj.state.current || "")} · application du prestataire Smart Hands</p>`;
+}
+
+const blocScanner = () => `<h2>Scanner</h2><div class="card"><p style="margin-top:0" id="etatScanner">${etat.scanner ? esc(etat.scanner) : "…"}</p><div class="actions"><button class="btn" data-act="installer-scanner">Vérifier / installer</button></div><p class="note">Le module de scan Google doit être installé avant d'aller au datacenter : il fonctionne ensuite sans réseau. Une douchette Bluetooth peut aussi saisir dans les champs « ou saisir ».</p></div>`;
+
+const connecte = () => !!(etat.session && (etat.session.token || etat.session.perdue));
+
 function ecranReglages() {
+  if (!connecte()) return ecranReglagesSansCompte();
   const s = etat.session, r = etat.reglages;
   const att = enAttente(), ref = refusees();
   let h = carteEtat(maj);
   h += `<h2>Compte</h2><div class="card">` + (s && s.user ? `<p style="margin-top:0"><b>${esc(s.user.nom)}</b><br><span class="note">${esc(s.user.email)}</span></p>` : "")
-    + `<p class="note">Serveur : <span class="mono">${esc(r.adresse || "non renseigné")}</span> · ${enLigne() ? `<span class="vert">joignable</span>` : `<span class="orange">injoignable</span>`}</p>`
-    + `<div class="actions"><button class="btn" data-act="changer-adresse">Changer de serveur</button><button class="btn" data-act="deconnexion">Se déconnecter</button></div></div>`;
+    + carteServeur(`<button class="btn" data-act="deconnexion">Se déconnecter</button>`) + `</div>`;
 
   h += `<h2 id="file">Envoi des actions</h2><div class="card">`
     + `<p style="margin-top:0">${att.length ? pluriel(att.length, "action en attente", "actions en attente") : "Tout est envoyé."}${etat.sync.dernier ? ` <span class="note">· dernier envoi ${ilya(etat.sync.dernier)}</span>` : ""}</p>`
@@ -480,7 +501,7 @@ function ecranReglages() {
 
   h += `<h2>Sécurité</h2><div class="card">` + coche(r.verrou, "verrou", "", "Verrouiller l'application", "Empreinte, visage ou code du téléphone à l'ouverture et après 2 minutes en arrière-plan") + `</div>`;
   h += `<h2>Notifications</h2><div class="card">` + coche(r.notifications, "notifications", "", "Interventions attribuées ou modifiées", "Nouvelle intervention, matériel prêt, changement d'horaire, annulation. Vérifié toutes les 30 minutes environ quand le téléphone joint le serveur.") + `</div>`;
-  h += `<h2>Scanner</h2><div class="card"><p style="margin-top:0" id="etatScanner">${etat.scanner ? esc(etat.scanner) : "…"}</p><div class="actions"><button class="btn" data-act="installer-scanner">Vérifier / installer</button></div><p class="note">Le module de scan Google doit être installé avant d'aller au datacenter : il fonctionne ensuite sans réseau. Une douchette Bluetooth peut aussi saisir dans les champs « ou saisir ».</p></div>`;
+  h += blocScanner();
   h += sectionReglages(maj);
   h += `<p class="note centre">SH Presta Terrain ${esc(maj.state.current || "")} · application du prestataire Smart Hands</p>`;
   return h;
@@ -506,16 +527,18 @@ function ecranConnexion() {
 function render() {
   if (etat.verrouille) { $("#verrou").hidden = false; return; }
   $("#verrou").hidden = true;
-  if (!etat.reglages.adresse) etat.ecran = "adresse";
-  else if (!etat.session || (!etat.session.token && !etat.session.perdue)) { if (etat.ecran !== "adresse") etat.ecran = "connexion"; }
-  const connecte = etat.session && (etat.session.token || etat.session.perdue);
+  /* sans adresse ou sans compte : écran d'adresse ou de connexion, mais les Réglages restent accessibles */
+  if (etat.ecran !== "reglages") {
+    if (!etat.reglages.adresse) etat.ecran = "adresse";
+    else if (!connecte() && etat.ecran !== "adresse") etat.ecran = "connexion";
+  }
   const e = etat.ecran;
   $("#retour").hidden = !(e === "intervention" || (e === "reglages") || (e === "connexion" && etat.session && etat.session.perdue));
   $("#titre").textContent = e === "intervention" ? "Intervention" : e === "reglages" ? "Réglages" : "SH Presta";
   $("#reseau").className = "reseau " + (etat.sync.enCours ? "sync" : enLigne() ? "en-ligne" : "hors-ligne");
   $("#reseau").textContent = etat.sync.enCours ? "Envoi…" : enLigne() ? "En ligne" : "Hors connexion";
-  $("#reseau").hidden = !connecte;
-  $("#ouvrirReglages").hidden = !connecte || e === "reglages" || e === "connexion" || e === "adresse";
+  $("#reseau").hidden = !connecte();
+  $("#ouvrirReglages").hidden = e === "reglages";
   const ecrans = { accueil: ecranAccueil, intervention: ecranIntervention, reglages: ecranReglages, adresse: ecranAdresse, connexion: ecranConnexion };
   const actif = document.activeElement;
   const garder = actif && actif.matches && actif.matches("input, textarea") && $("#app").contains(actif) ? { form: actif.closest("form") && actif.closest("form").dataset.form, name: actif.name, ctx: actif.dataset.contexte, val: actif.value } : null;
@@ -770,6 +793,14 @@ const ACTIONS = {
     render();
   },
   "reconnecter": () => { etat.ecran = "connexion"; render(); },
+  "tester-serveur": async el => {
+    el.disabled = true; el.textContent = "Test…";
+    const ok = await api.sante();
+    etat.joignable = ok;
+    toast(ok ? "Serveur joignable" : "Serveur injoignable : réseau de l'entreprise ou VPN connecté ?", ok ? "ok" : "alerte");
+    if (ok) planifierSync(0);
+    render();
+  },
   "changer-adresse": () => {
     if (enAttente().length) { toast("Des actions attendent d'être envoyées à ce serveur : impossible de changer d'adresse maintenant", "alerte"); return; }
     etat.ecran = "adresse"; render();
