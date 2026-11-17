@@ -12,6 +12,7 @@ téléphone avant le départ, chaque geste est conservé puis envoyé au retour 
 | | |
 |---|---|
 | Mes interventions | en cours, du jour, à venir, terminées récemment ; « prête hors connexion » quand le dossier est sur le téléphone |
+| Historique | toutes les interventions passées de l'entreprise, tous intervenants confondus et sans limite de durée : recherche, filtre par statut, regroupement par mois ; rapport PDF et mouvements réalisés de chaque intervention |
 | Étape 1 — siège | pointage des cartouches (scan, douchette ou toucher) et du matériel à récupérer |
 | Étape 2 — datacenter | TS4300 par touchers (poser, retirer, déplacer, « placer selon le plan »), contrôles visuels, opération ponctuelle, anomalies avec photos |
 | Étape 3 — retour | restitution des cartouches retirées ou non chargées, du matériel à ramener |

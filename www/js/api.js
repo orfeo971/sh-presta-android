@@ -113,6 +113,21 @@ export function creerApi({ adresse, surSession = () => {}, surJoignable = () => 
       ecrireSession(null);
       surSession(null);
     },
+    /** Fichier protégé (rapport PDF) : Blob, ou { status } en cas de refus. */
+    async fichier(chemin) {
+      const charger = async () => {
+        const s = lireSession();
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 60000);
+        try {
+          return await fetch(adresse() + "/api" + chemin, { headers: s && s.token ? { Authorization: "Bearer " + s.token } : {}, signal: ctrl.signal });
+        } catch (e) { surJoignable(false); throw { reseau: true, message: "Serveur injoignable" }; } finally { clearTimeout(t); }
+      };
+      let r = await charger();
+      if (r.status === 401 && (await renouveler())) r = await charger();
+      surJoignable(true);
+      return r.ok ? { ok: true, blob: await r.blob() } : { ok: false, status: r.status };
+    },
     /** Envoi d'une requête de la file (file.js) : le fichier d'une photo est lu au dernier moment. */
     async envoyer(req, lirePhoto) {
       const s = lireSession();

@@ -6,6 +6,8 @@ import { Network } from "@capacitor/network";
 import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { Preferences } from "@capacitor/preferences";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { BarcodeScanner } from "@capacitor-mlkit/barcode-scanning";
 import { BiometricAuth } from "@aparajita/capacitor-biometric-auth";
@@ -105,6 +107,20 @@ function choisirFichierWeb() {
     i.onchange = () => resolve(i.files && i.files[0] ? i.files[0] : null);
     i.click();
   });
+}
+
+/* ---------- documents (rapport PDF) ---------- */
+/** Ouvre un PDF : Android propose les applications capables de l'afficher (ou de l'envoyer). */
+export async function ouvrirPdf(blob, nom) {
+  if (!isNative) { window.open(URL.createObjectURL(blob), "_blank"); return; }
+  const base64 = await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(",")[1]);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+  const f = await Filesystem.writeFile({ path: nom, data: base64, directory: Directory.Cache });
+  await Share.share({ title: nom, url: f.uri, dialogTitle: "Ouvrir le rapport avec…" });
 }
 
 /* ---------- verrouillage (empreinte, visage ou code du téléphone) ---------- */

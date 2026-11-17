@@ -177,6 +177,13 @@ dt { color: var(--muted); } dd { margin: 0; }
 .vignette { position: relative; } .vignette .linkbtn { position: absolute; top: -8px; right: -8px; background: var(--paper); border-radius: 50%; min-height: 0; padding: 0 6px; }
 .anomalie .puce { margin-left: 4px; }
 
+/* ---------- historique ---------- */
+.recherche input { width: 100%; min-height: 46px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--paper); font-size: 1rem; }
+.filtres { display: flex; gap: 6px; margin: 10px 0 4px; overflow-x: auto; }
+.filtre { flex: none; padding: 8px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--paper); font-weight: 600; font-size: .9rem; }
+.filtre.actif { background: var(--blue); border-color: var(--blue); color: #fff; }
+.ci-dc small { font-weight: 500; font-size: .8rem; }
+
 /* ---------- connexion ---------- */
 .accueil-connexion { max-width: 440px; margin: 24px auto; background: var(--paper); border: 1px solid var(--line); border-radius: var(--rayon); padding: 20px; }
 .accueil-connexion h2 { margin-top: 0; }

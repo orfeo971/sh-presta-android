@@ -7,6 +7,7 @@ import { appliquer } from "./optimiste.js";
 import { synchroniser, annulerCreation, delaiNouvelEssai, ARRET } from "./file.js";
 import { normaliserAdresse } from "./adresse.js";
 import { comparer } from "./veille.js";
+import { FILTRES, filtrer, parMois } from "./historique.js";
 import * as ts from "./ts4300.js";
 import * as st from "./stockage.js";
 import * as native from "./native.js";
@@ -33,7 +34,9 @@ const etat = {
   chargement: {},                /* id → téléchargement du dossier en cours */
   ouvert: {},                    /* étapes et blocs dépliés */
   selection: null,               /* TS4300 : { cartoucheId } ou { emplacementId, mode: "deplacer" } */
-  photosAnomalie: [],            /* photos prises pour l'anomalie en cours de saisie : [{ id, url }] */
+  photosAnomalie: [],
+  histo: { filtre: "toutes", recherche: "" },  /* écran Historique */
+  rapport: null,                 /* téléchargement du rapport en cours (id) */            /* photos prises pour l'anomalie en cours de saisie : [{ id, url }] */
   verrouille: false,
   scanner: null
 };
@@ -239,7 +242,22 @@ function ecranAccueil() {
     html += `<h2>${titre}</h2>` + l.map(carteIntervention).join("");
   }
   if (!etat.liste.some(i => groupes.some(([, f]) => f(i)))) html += `<section class="vide"><p>Aucune intervention prévue pour votre entreprise.</p></section>`;
+  const nbHisto = filtrer(etat.liste, { aujourdhui: auj }).length;
+  if (nbHisto) html += `<div class="actions"><button class="btn large" data-act="historique">🗂 Historique complet de l'entreprise (${nbHisto})</button></div>`;
   html += `<p class="note centre">Liste ${etat.listeLe ? "mise à jour " + ilya(etat.listeLe) : "jamais mise à jour"} · <button class="linkbtn" data-act="actualiser">Actualiser</button></p>`;
+  return html;
+}
+
+/* ---------- historique complet de l'entreprise (tous intervenants, sans limite de durée) ---------- */
+function ecranHistorique() {
+  if (!etat.liste) return `<section class="vide"><p>Liste non disponible : connectez-vous au réseau de l'entreprise.</p></section>`;
+  const h = etat.histo;
+  const liste = filtrer(etat.liste, { aujourdhui: aujourdhui(), filtre: h.filtre, recherche: h.recherche });
+  let html = `<form data-form="historique" class="recherche"><input name="recherche" type="search" value="${esc(h.recherche)}" placeholder="Rechercher : datacenter, ticket, n°, date (2026-11)…" autocomplete="off" enterkeyhint="search"></form>`
+    + `<div class="filtres">${Object.entries(FILTRES).map(([k, f]) => `<button class="filtre${h.filtre === k ? " actif" : ""}" data-act="filtre-histo" data-filtre="${k}">${f.libelle}</button>`).join("")}</div>`
+    + `<p class="note">${pluriel(liste.length, "intervention", "interventions")} de l'entreprise, tous intervenants confondus.${enLigne() ? "" : " Hors connexion : seules les fiches enregistrées sur le téléphone s'ouvrent."}</p>`;
+  if (!liste.length) return html + `<section class="vide"><p>Aucune intervention ne correspond.</p></section>`;
+  for (const g of parMois(liste)) html += `<h2>${esc(g.mois.charAt(0).toUpperCase() + g.mois.slice(1))} <small>${g.interventions.length}</small></h2>` + g.interventions.map(carteIntervention).join("");
   return html;
 }
 
@@ -251,7 +269,7 @@ function carteIntervention(i) {
   const pc = v ? avancement(v) : null;
   return `<button class="carte-inter" data-act="ouvrir" data-id="${i.id}">`
     + `<span class="ci-tete"><b>${esc(jourLisible(jourDe(i.date)))} · ${esc(heureDe(i.heure_prevue))}</b>${puce(STATUTS[statut] || statut, STATUT_TON[statut])}</span>`
-    + `<span class="ci-dc">${esc(i.datacenter || "Datacenter à préciser")}</span>`
+    + `<span class="ci-dc">${esc(i.datacenter || "Datacenter à préciser")} <small class="muet">n° ${i.id}</small></span>`
     + `<span class="ci-pied">${i.ticket_hebergeur ? `<span>🎫 ${esc(i.ticket_hebergeur)}</span>` : `<span class="muet">Pas encore de ticket</span>`}`
     + `${i.en_retard && !["terminee", "validee", "annulee"].includes(statut) ? `<span class="rouge">En retard</span>` : ""}`
     + `${n ? `<span class="orange">⏳ ${n} en attente</span>` : ""}<span class="${pret ? "vert" : "muet"}">${pret ? "✓ Prête hors connexion" : "Non téléchargée"}</span></span>`
@@ -279,6 +297,7 @@ function ecranIntervention() {
     + (i.inclut_anomalies_ponctuelles && i.operation_ponctuelle_intitule ? `<dt>Opération</dt><dd>${esc(i.operation_ponctuelle_intitule)}</dd>` : "")
     + (i.commentaires ? `<dt>Consignes</dt><dd>${esc(i.commentaires)}</dd>` : "")
     + `</dl>`
+    + (v.rapport ? `<div class="actions"><button class="btn" data-act="rapport" data-id="${id}" ${etat.rapport === id ? "disabled" : ""}>📄 ${etat.rapport === id ? "Téléchargement du rapport…" : "Rapport d'intervention (PDF)"}</button></div>` : "")
     + `<p class="note">${etat.chargement[id] ? "Mise à jour du dossier…" : `✓ Dossier enregistré sur le téléphone ${ilya(etat.dossiers[id].telechargeLe)}`} · <button class="linkbtn" data-act="telecharger" data-id="${id}">Mettre à jour</button></p>`
     + `</section>`;
   if (figee(v)) html += `<div class="priority lv-vert"><b>Intervention ${i.statut === "annulee" ? "annulée" : "clôturée"}</b>Consultation seule.</div>`;
@@ -382,6 +401,10 @@ function corpsTs4300(v, fait) {
     h += `<div class="actions"><button class="btn primary large" data-act="valider-chargement">${nb ? `Valider le chargement (${pluriel(b.installs.length, "installation", "installations")}, ${pluriel(b.retraits.length, "retrait", "retraits")})` : "Valider le chargement sans mouvement"}</button></div>`;
     if (nb) h += `<div class="actions"><button class="linkbtn" data-act="vider-brouillon">Tout annuler</button></div>`;
   } else {
+    if (v.mouvements.length) {
+      h += `<h3>Mouvements réalisés <small>${v.mouvements.length}</small></h3><ul class="liste compacte">${v.mouvements.map(m => `<li><span class="txt"><b>${m.type === "installation" ? "Installation" : "Retrait"} <span class="mono">${esc(m.cartouche_reference)}</span>${m.emplacement_ts4300 ? " en " + esc(m.emplacement_ts4300) : ""}</b><small>${m._attente ? "En attente d'envoi" : horodatage(m.horodatage)}</small></span></li>`).join("")}</ul>`
+        + `<p class="note">La grille ci-dessus montre l'état actuel de la bandothèque.</p>`;
+    }
     const r = v.aRestituer.filter(c => c.cartouche_etat === "transit");
     if (r.length) h += `<p class="note">À ramener au siège : ${r.map(c => `<span class="mono">${esc(c.cartouche_reference)}</span>`).join(", ")}</p>`;
   }
@@ -533,13 +556,13 @@ function render() {
     else if (!connecte() && etat.ecran !== "adresse") etat.ecran = "connexion";
   }
   const e = etat.ecran;
-  $("#retour").hidden = !(e === "intervention" || (e === "reglages") || (e === "connexion" && etat.session && etat.session.perdue));
-  $("#titre").textContent = e === "intervention" ? "Intervention" : e === "reglages" ? "Réglages" : "SH Presta";
+  $("#retour").hidden = !(e === "intervention" || e === "historique" || (e === "reglages") || (e === "connexion" && etat.session && etat.session.perdue));
+  $("#titre").textContent = e === "intervention" ? "Intervention" : e === "reglages" ? "Réglages" : e === "historique" ? "Historique" : "SH Presta";
   $("#reseau").className = "reseau " + (etat.sync.enCours ? "sync" : enLigne() ? "en-ligne" : "hors-ligne");
   $("#reseau").textContent = etat.sync.enCours ? "Envoi…" : enLigne() ? "En ligne" : "Hors connexion";
   $("#reseau").hidden = !connecte();
   $("#ouvrirReglages").hidden = e === "reglages";
-  const ecrans = { accueil: ecranAccueil, intervention: ecranIntervention, reglages: ecranReglages, adresse: ecranAdresse, connexion: ecranConnexion };
+  const ecrans = { historique: ecranHistorique, accueil: ecranAccueil, intervention: ecranIntervention, reglages: ecranReglages, adresse: ecranAdresse, connexion: ecranConnexion };
   const actif = document.activeElement;
   const garder = actif && actif.matches && actif.matches("input, textarea") && $("#app").contains(actif) ? { form: actif.closest("form") && actif.closest("form").dataset.form, name: actif.name, ctx: actif.dataset.contexte, val: actif.value } : null;
   const valeurs = garderFormulaires();
@@ -548,7 +571,7 @@ function render() {
   if (garder) {
     const sel = garder.form ? `form[data-form="${garder.form}"] [name="${garder.name}"]` : garder.ctx ? `.saisie-scan[data-contexte="${garder.ctx}"]` : null;
     const el = sel && $(sel);
-    if (el) { el.focus(); if (garder.ctx) el.value = garder.val; }
+    if (el) { el.focus(); if (garder.ctx) el.value = garder.val; try { el.setSelectionRange(el.value.length, el.value.length); } catch (e) { /* type sans curseur */ } }
   }
   afficherVignettes();
 }
@@ -585,6 +608,7 @@ async function afficherVignettes() {
 
 /* ---------- gestes ---------- */
 function ouvrirIntervention(id) {
+  etat.depuis = etat.ecran === "historique" ? "historique" : "accueil";
   etat.interventionId = id; etat.ecran = "intervention"; etat.selection = null;
   render(); window.scrollTo(0, 0);
   if (enLigne() && !actionsDe(id).some(a => a.etat !== "rejetee")) telechargerDossier(id);
@@ -594,7 +618,8 @@ function ouvrirIntervention(id) {
 function retour() {
   if (!$("#sheet").hidden) { feuilleFermer(); return true; }
   if (etat.selection) { etat.selection = null; render(); return true; }
-  if (etat.ecran === "intervention" || etat.ecran === "reglages" || (etat.ecran === "connexion" && etat.session && etat.session.perdue)) { etat.ecran = "accueil"; render(); window.scrollTo(0, 0); return true; }
+  if (etat.ecran === "intervention" && etat.depuis === "historique") { etat.ecran = "historique"; etat.depuis = null; render(); return true; }
+  if (etat.ecran === "intervention" || etat.ecran === "historique" || etat.ecran === "reglages" || (etat.ecran === "connexion" && etat.session && etat.session.perdue)) { etat.ecran = "accueil"; render(); window.scrollTo(0, 0); return true; }
   return false;
 }
 
@@ -722,6 +747,19 @@ async function prendrePhoto() {
 
 const ACTIONS = {
   "ouvrir": el => ouvrirIntervention(Number(el.dataset.id)),
+  "historique": () => { etat.ecran = "historique"; render(); window.scrollTo(0, 0); },
+  "filtre-histo": el => { etat.histo.filtre = el.dataset.filtre; render(); },
+  "rapport": async el => {
+    const id = Number(el.dataset.id), v = vueDe(id);
+    if (!v || !v.rapport) return;
+    etat.rapport = id; render();
+    try {
+      const r = await api.fichier("/uploads/" + v.rapport.chemin_pdf);
+      if (!r.ok) toast(r.status === 404 ? "Rapport introuvable sur le serveur" : "Rapport indisponible (" + r.status + ")", "alerte");
+      else await native.ouvrirPdf(r.blob, `rapport-intervention-${id}.pdf`);
+    } catch (e) { toast(e.reseau ? "Rapport disponible avec le réseau de l'entreprise" : "Ouverture impossible : " + (e.message || e), "alerte"); }
+    etat.rapport = null; render();
+  },
   "actualiser": () => rafraichirListe({ silencieux: false }),
   "telecharger": el => telechargerDossier(Number(el.dataset.id), { silencieux: false }),
   "plier": el => { const k = el.dataset.cle; const ouvert = el.getAttribute("aria-expanded") === "true"; etat.ouvert[k] = !ouvert; render(); },
@@ -860,6 +898,7 @@ async function verifierScanner(installer) {
 
 /* ---------- formulaires ---------- */
 const FORMULAIRES = {
+  historique() { render(); },
   async adresse(f) {
     const r = normaliserAdresse(f.adresse.value);
     if (!r.ok) { toast(r.erreur, "alerte"); return; }
@@ -932,6 +971,14 @@ document.addEventListener("submit", async e => {
   e.preventDefault();
   try { await FORMULAIRES[f.dataset.form](f); } catch (err) { console.error(err); toast("Erreur : " + (err.message || err), "alerte"); }
 });
+document.addEventListener("input", e => {
+  const f = e.target.closest && e.target.closest('form[data-form="historique"]');
+  if (!f) return;
+  etat.histo.recherche = e.target.value;
+  clearTimeout(document.rechercheH);
+  document.rechercheH = setTimeout(render, 200);
+});
+
 /* saisie manuelle ou douchette Bluetooth (qui « tape » le code puis Entrée) */
 document.addEventListener("keydown", async e => {
   const el = e.target;
