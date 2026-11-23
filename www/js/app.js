@@ -239,11 +239,11 @@ function ecranAccueil() {
   for (const [titre, f] of groupes) {
     const l = etat.liste.filter(f).sort(titre.startsWith("Terminées") ? (a, b) => tri(b, a) : tri);
     if (!l.length) continue;
-    html += `<h2>${titre}</h2>` + l.map(carteIntervention).join("");
+    html += `<h2>${titre}</h2>` + l.map(i => carteIntervention(i, { sansJour: titre === "Aujourd'hui" })).join("");
   }
   if (!etat.liste.some(i => groupes.some(([, f]) => f(i)))) html += `<section class="vide"><p>Aucune intervention prévue pour votre entreprise.</p></section>`;
   const nbHisto = filtrer(etat.liste, { aujourdhui: auj }).length;
-  if (nbHisto) html += `<div class="actions"><button class="btn large" data-act="historique">🗂 Historique complet de l'entreprise (${nbHisto})</button></div>`;
+  if (nbHisto) html += `<div class="actions"><button class="btn large" data-act="historique">Historique de l'entreprise · ${nbHisto}</button></div>`;
   html += `<p class="note centre">Liste ${etat.listeLe ? "mise à jour " + ilya(etat.listeLe) : "jamais mise à jour"} · <button class="linkbtn" data-act="actualiser">Actualiser</button></p>`;
   return html;
 }
@@ -253,7 +253,7 @@ function ecranHistorique() {
   if (!etat.liste) return `<section class="vide"><p>Liste non disponible : connectez-vous au réseau de l'entreprise.</p></section>`;
   const h = etat.histo;
   const liste = filtrer(etat.liste, { aujourdhui: aujourdhui(), filtre: h.filtre, recherche: h.recherche });
-  let html = `<form data-form="historique" class="recherche"><input name="recherche" type="search" value="${esc(h.recherche)}" placeholder="Rechercher : datacenter, ticket, n°, date (2026-11)…" autocomplete="off" enterkeyhint="search"></form>`
+  let html = `<form data-form="historique" class="recherche"><input name="recherche" type="search" value="${esc(h.recherche)}" placeholder="Datacenter, ticket, n°, date…" aria-label="Rechercher dans l'historique" autocomplete="off" enterkeyhint="search"></form>`
     + `<div class="filtres">${Object.entries(FILTRES).map(([k, f]) => `<button class="filtre${h.filtre === k ? " actif" : ""}" data-act="filtre-histo" data-filtre="${k}">${f.libelle}</button>`).join("")}</div>`
     + `<p class="note">${pluriel(liste.length, "intervention", "interventions")} de l'entreprise, tous intervenants confondus.${enLigne() ? "" : " Hors connexion : seules les fiches enregistrées sur le téléphone s'ouvrent."}</p>`;
   if (!liste.length) return html + `<section class="vide"><p>Aucune intervention ne correspond.</p></section>`;
@@ -261,18 +261,18 @@ function ecranHistorique() {
   return html;
 }
 
-function carteIntervention(i) {
+function carteIntervention(i, { sansJour = false } = {}) {
   const v = vueDe(i.id);
   const statut = v ? v.intervention.statut : i.statut;
   const n = actionsDe(i.id).filter(a => a.etat !== "rejetee").length;
   const pret = !!etat.dossiers[i.id];
   const pc = v ? avancement(v) : null;
   return `<button class="carte-inter" data-act="ouvrir" data-id="${i.id}">`
-    + `<span class="ci-tete"><b>${esc(jourLisible(jourDe(i.date)))} · ${esc(heureDe(i.heure_prevue))}</b>${puce(STATUTS[statut] || statut, STATUT_TON[statut])}</span>`
+    + `<span class="ci-tete"><b>${sansJour ? "" : esc(jourLisible(jourDe(i.date))) + " · "}${esc(heureDe(i.heure_prevue))}</b>${puce(STATUTS[statut] || statut, STATUT_TON[statut])}</span>`
     + `<span class="ci-dc">${esc(i.datacenter || "Datacenter à préciser")} <small class="muet">n° ${i.id}</small></span>`
-    + `<span class="ci-pied">${i.ticket_hebergeur ? `<span>🎫 ${esc(i.ticket_hebergeur)}</span>` : `<span class="muet">Pas encore de ticket</span>`}`
+    + `<span class="ci-pied">${i.ticket_hebergeur ? `<span>Ticket <span class="mono">${esc(i.ticket_hebergeur)}</span></span>` : `<span class="muet">Pas encore de ticket</span>`}`
     + `${i.en_retard && !["terminee", "validee", "annulee"].includes(statut) ? `<span class="rouge">En retard</span>` : ""}`
-    + `${n ? `<span class="orange">⏳ ${n} en attente</span>` : ""}<span class="${pret ? "vert" : "muet"}">${pret ? "✓ Prête hors connexion" : "Non téléchargée"}</span></span>`
+    + `${n ? `<span class="orange">⏳ ${n} en attente</span>` : ""}${pret ? `<span class="vert">✓ Prête hors connexion</span>` : ["creee", "planifiee", "en_cours"].includes(statut) ? `<span class="muet">Non téléchargée</span>` : ""}</span>`
     + (pc != null && pc > 0 && pc < 100 ? `<span class="progres"><i style="width:${pc}%"></i></span>` : "")
     + `</button>`;
 }
@@ -297,7 +297,7 @@ function ecranIntervention() {
     + (i.inclut_anomalies_ponctuelles && i.operation_ponctuelle_intitule ? `<dt>Opération</dt><dd>${esc(i.operation_ponctuelle_intitule)}</dd>` : "")
     + (i.commentaires ? `<dt>Consignes</dt><dd>${esc(i.commentaires)}</dd>` : "")
     + `</dl>`
-    + (v.rapport ? `<div class="actions"><button class="btn" data-act="rapport" data-id="${id}" ${etat.rapport === id ? "disabled" : ""}>📄 ${etat.rapport === id ? "Téléchargement du rapport…" : "Rapport d'intervention (PDF)"}</button></div>` : "")
+    + (v.rapport ? `<div class="actions"><button class="btn" data-act="rapport" data-id="${id}" ${etat.rapport === id ? "disabled" : ""}>${etat.rapport === id ? "Téléchargement du rapport…" : "Rapport d'intervention (PDF)"}</button></div>` : "")
     + `<p class="note">${etat.chargement[id] ? "Mise à jour du dossier…" : `✓ Dossier enregistré sur le téléphone ${ilya(etat.dossiers[id].telechargeLe)}`} · <button class="linkbtn" data-act="telecharger" data-id="${id}">Mettre à jour</button></p>`
     + `</section>`;
   if (figee(v)) html += `<div class="priority lv-vert"><b>Intervention ${i.statut === "annulee" ? "annulée" : "clôturée"}</b>Consultation seule.</div>`;
@@ -337,7 +337,7 @@ function boutonValider(v, cle, libelle) {
 
 function zoneScan(contexte) {
   return `<div class="scan"><button class="btn scan-btn" data-act="scanner" data-contexte="${contexte}"><span aria-hidden="true">▦</span> Scanner</button>`
-    + `<input class="saisie-scan" data-contexte="${contexte}" placeholder="ou saisir / douchette" autocomplete="off" autocapitalize="characters" enterkeyhint="done"></div>`;
+    + `<input class="saisie-scan" data-contexte="${contexte}" placeholder="Saisir un code" aria-label="Saisir ou scanner à la douchette" autocomplete="off" autocapitalize="characters" enterkeyhint="done"></div>`;
 }
 
 function corpsDepart(v, e) {
@@ -460,7 +460,7 @@ function corpsOperation(v, fait) {
       + `<fieldset class="choix"><legend>Priorité</legend>${Object.entries(PRIORITES).map(([k, l]) => `<label class="prio-choix"><input type="radio" name="priorite" value="${k}" ${k === "moyenne" ? "checked" : ""}><span>${l}</span></label>`).join("")}</fieldset>`
       + `<label class="field">Description<textarea name="description" rows="3" required></textarea></label>`
       + `<div class="vignettes">${etat.photosAnomalie.map(p => `<span class="vignette"><img src="${p.url}" alt=""><button type="button" class="linkbtn danger" data-act="retirer-photo-saisie" data-pid="${p.id}">✕</button></span>`).join("")}</div>`
-      + `<div class="actions"><button class="btn" type="button" data-act="photo-saisie">📷 Ajouter une photo</button><button class="btn primary" type="submit">Signaler</button></div></form></details>`;
+      + `<div class="actions"><button class="btn" type="button" data-act="photo-saisie">Ajouter une photo</button><button class="btn primary" type="submit">Signaler</button></div></form></details>`;
     h += boutonValider(v, "anomalies_ponctuelles", "Valider l'opération");
   }
   return h;
