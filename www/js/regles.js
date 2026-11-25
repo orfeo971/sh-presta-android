@@ -31,8 +31,20 @@ export const STATUTS_ANOMALIE = { ouverte: "Ouverte", analyse: "En analyse", clo
 
 /** Rien à récupérer au siège : l'étape 1 ne s'applique pas. */
 export const departApplicable = i => !!(i.inclut_cartouches || i.ponctuelle_materiel_a_recuperer);
-/** Rien à ramener : l'étape 3 ne s'applique pas. */
-export const retourApplicable = i => !!(i.inclut_cartouches || i.ponctuelle_materiel_a_ramener);
+/**
+ * Y a-t-il réellement quelque chose à ramener au siège (étape 3) ? Même règle que le serveur
+ * (etapes-terrain/routes.ts, retourNecessaire) : du matériel ponctuel à ramener, ou des cartouches
+ * retirées de la TS4300 ou récupérées au siège et jamais chargées. « inclut_cartouches » seul ne
+ * suffit pas : une intervention qui n'a fait qu'installer des cartouches n'a rien à ramener. Tant
+ * que le chargement n'est pas validé, les retraits ne sont pas connus : l'étape reste prévue.
+ */
+export function retourNecessaire(v) {
+  const i = v.intervention;
+  if (i.ponctuelle_materiel_a_ramener) return true;
+  if (!i.inclut_cartouches) return false;
+  if (!etapeValidee(v, "chargement_ts4300") && !etapeValidee(v, "intervention")) return true;
+  return v.aRestituer.length > 0;
+}
 
 export function sousEtapesRequises(i) {
   return SOUS_ETAPES.filter(e => (e === "chargement_ts4300" ? i.inclut_cartouches : e === "verification_visuelle" ? i.inclut_verification : i.inclut_anomalies_ponctuelles));
@@ -113,7 +125,7 @@ export function etapes(v) {
   const departOk = !departApplicable(i) || etapeValidee(v, "depart_siege");
   liste.push({ cle: "depart_siege", numero: 1, applicable: departApplicable(i), accessible: i.statut !== "creee" || etapeValidee(v, "depart_siege") });
   liste.push({ cle: "intervention", numero: 2, applicable: true, accessible: departOk });
-  liste.push({ cle: "retour_siege", numero: 3, applicable: retourApplicable(i), accessible: etapeValidee(v, "intervention") });
+  liste.push({ cle: "retour_siege", numero: 3, applicable: retourNecessaire(v) || etapeValidee(v, "retour_siege"), accessible: etapeValidee(v, "intervention") });
   return liste.map(e => {
     const et = etapeDe(v, e.cle);
     return { ...e, titre: ETAPES[e.cle], validee: !!et, valideLe: et ? et.valide_le : null, enAttente: !!(et && et._attente), bloquants: bloquants(v, e.cle) };
@@ -133,11 +145,12 @@ export function avancement(v) {
 }
 
 /** Statut atteint après la validation d'une étape (comme advanceStatutTo côté serveur). */
-export function statutApres(i, etape) {
+export function statutApres(v, etape) {
+  const i = v.intervention;
   const vers = (cible) => (ORDRE_STATUTS.indexOf(cible) > ORDRE_STATUTS.indexOf(i.statut) ? cible : i.statut);
   if (i.statut === "annulee") return i.statut;
   if (etape === "depart_siege") return vers("en_cours");
-  if (etape === "intervention") return retourApplicable(i) ? vers("en_cours") : vers("terminee");
+  if (etape === "intervention") return retourNecessaire(v) ? vers("en_cours") : vers("terminee");
   if (etape === "retour_siege") return vers("terminee");
   return i.statut;
 }

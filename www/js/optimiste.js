@@ -28,6 +28,7 @@ export function appliquer(dossier, actions = []) {
   const changees = new Set();
   const etat = (cid, e) => { connaitre(cid, null, e); cartouches.get(cid).etat = e; changees.add(cid); };
 
+  const validations = [];
   for (const a of miennes) {
     const p = a.params;
     switch (a.type) {
@@ -91,7 +92,7 @@ export function appliquer(dossier, actions = []) {
       case "valider_etape": {
         v.etapes = v.etapes.filter(e => e.etape !== p.etape);
         v.etapes.push({ etape: p.etape, valide_le: a.realiseLe, donnees: {}, _attente: true });
-        v.intervention.statut = statutApres(v.intervention, p.etape);
+        validations.push(p.etape);
         break;
       }
     }
@@ -108,6 +109,9 @@ export function appliquer(dossier, actions = []) {
     .filter(cid => cartouches.has(cid) && ["transit", "a_ranger"].includes(cartouches.get(cid).etat))
     .map(cid => ({ cartouche_id: cid, cartouche_reference: cartouches.get(cid).reference, cartouche_etat: cartouches.get(cid).etat, ...(changees.has(cid) ? { _attente: true } : {}) }))
     .sort((a, b) => String(a.cartouche_reference).localeCompare(String(b.cartouche_reference)));
+
+  /* statut après les validations, calculé sur la vue complète (ce qui reste à ramener est connu) */
+  for (const etape of validations) v.intervention.statut = statutApres(v, etape);
 
   v.enAttente = miennes.length;
   return v;

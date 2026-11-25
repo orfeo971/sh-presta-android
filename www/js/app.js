@@ -1,7 +1,7 @@
 /* SH Presta Terrain : application du prestataire (écrans et événements).
    La logique (règles, file d'envoi, vue hors connexion, TS4300) est dans des modules purs testés. */
 import { esc, jourDe, heureDe, jourLisible, horodatage, ilya, aujourdhui, ecartJours, pluriel } from "./format.js";
-import { STATUTS, STATUT_TON, ETAPES, VOYANTS, PRIORITES, STATUTS_ANOMALIE, etapes, etapeValidee, bloquants, sousEtapesRequises, figee, departApplicable, retourApplicable, avancement } from "./regles.js";
+import { STATUTS, STATUT_TON, ETAPES, VOYANTS, PRIORITES, STATUTS_ANOMALIE, etapes, etapeValidee, bloquants, sousEtapesRequises, figee, departApplicable, avancement } from "./regles.js";
 import { creer, idLocal, estLocal } from "./actions.js";
 import { appliquer } from "./optimiste.js";
 import { synchroniser, annulerCreation, delaiNouvelEssai, ARRET } from "./file.js";

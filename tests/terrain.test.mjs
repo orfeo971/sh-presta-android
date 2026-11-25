@@ -144,9 +144,26 @@ test("datacenter : contrôles, opération ponctuelle, passage validé, retour", 
 });
 
 test("statut : intervention sans retour au siège terminée dès le passage au datacenter", () => {
-  const i = { statut: "en_cours", inclut_cartouches: false, ponctuelle_materiel_a_ramener: false };
-  assert.equal(statutApres(i, "intervention"), "terminee");
-  assert.equal(statutApres({ ...i, statut: "terminee" }, "depart_siege"), "terminee");
+  const v = { intervention: { statut: "en_cours", inclut_cartouches: false, ponctuelle_materiel_a_ramener: false }, etapes: [], aRestituer: [] };
+  assert.equal(statutApres(v, "intervention"), "terminee");
+  assert.equal(statutApres({ ...v, intervention: { ...v.intervention, statut: "terminee" } }, "depart_siege"), "terminee");
+});
+
+test("rien à ramener (cartouches seulement installées) : pas d'étape 3, intervention terminée", () => {
+  /* sans matériel ponctuel à ramener ni retrait planifié : toutes les cartouches récupérées sont installées */
+  const d = { ...dossier, intervention: { ...dossier.intervention, ponctuelle_materiel_a_ramener: false, inclut_verification: false, inclut_anomalies_ponctuelles: false }, materielPonctuel: [], retraitsPrevus: [] };
+  const recup = ["SRQ011L9", "SRQ012L9", "SRQ013L9"].map(r => creer("recuperer_cartouche", { interventionId: I, cartoucheId: ref(r).cartouche_id, recupere: true, reference: r }));
+  let v = appliquer(d, [...recup, creer("valider_etape", { interventionId: I, etape: "depart_siege" })]);
+  assert.equal(etapes(v)[2].applicable, true, "avant le chargement : retour encore prévu");
+  const b = ts.placerSelonPlan(v, ts.brouillonVide()).brouillon;
+  const fin = [...recup, creer("valider_etape", { interventionId: I, etape: "depart_siege" }),
+    ...ts.versMouvements(v, b, I).map(p => creer("mouvement", p)),
+    creer("valider_etape", { interventionId: I, etape: "chargement_ts4300" })];
+  v = appliquer(d, fin);
+  assert.equal(etapes(v)[2].applicable, false, "chargement validé sans retrait : rien à ramener");
+  v = appliquer(d, [...fin, creer("valider_etape", { interventionId: I, etape: "intervention" })]);
+  assert.equal(v.intervention.statut, "terminee");
+  assert.equal(etapeCourante(v), null);
 });
 
 test("intervention clôturée : figée", () => {
