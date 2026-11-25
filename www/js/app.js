@@ -218,7 +218,11 @@ function bandeau() {
   else if (!enLigne()) { cls = "horsligne"; txt = "Hors connexion" + (n ? ` · ${pluriel(n, "action", "actions")} en attente, envoyée${n > 1 ? "s" : ""} au retour du réseau` : " · travail possible sur les dossiers enregistrés"); }
   else if (n) { cls = "attente"; txt = `${pluriel(n, "action", "actions")} en attente d'envoi`; }
   else cls = "";
-  const session = etat.session && etat.session.perdue ? `<button class="bandeau alerte" data-act="reconnecter">Session expirée : reconnectez-vous pour envoyer vos actions (elles sont conservées)</button>` : "";
+  /* session expirée : bouton explicite, le bandeau seul ne se lisait pas comme une action */
+  const nAttente = enAttente().length;
+  const session = etat.session && etat.session.perdue
+    ? `<div class="bandeau alerte bandeau-action"><span>Session expirée${nAttente ? ` : ${pluriel(nAttente, "action conservée", "actions conservées")}, envoyée${nAttente > 1 ? "s" : ""} après reconnexion` : ""}.</span><button class="btn small primary" data-act="reconnecter">Se reconnecter</button></div>`
+    : "";
   const ref = r ? `<button class="bandeau alerte" data-act="voir-refus">${pluriel(r, "action refusée", "actions refusées")} par le serveur : à examiner</button>` : "";
   return session + ref + (cls ? `<button class="bandeau ${cls}" data-act="sync-maintenant">${esc(txt)}${n && !etat.sync.enCours && enLigne() ? " · Envoyer" : ""}</button>` : "");
 }

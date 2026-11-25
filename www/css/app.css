@@ -68,6 +68,8 @@ h4 { margin: 0 0 6px; font-size: .85rem; color: var(--muted); }
 .bandeau.horsligne { background: var(--fo-bg); color: var(--fo); }
 .bandeau.attente { background: var(--fo-bg); color: var(--fo); }
 .bandeau.alerte { background: var(--fr-bg); color: var(--fr); }
+.bandeau-action { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bandeau-action .btn { flex: none; }
 .priority { border-radius: 12px; padding: 12px 14px; margin: 10px 0; }
 .priority b { display: block; }
 .priority.lv-vert { background: var(--fv-bg); color: var(--fv); }
