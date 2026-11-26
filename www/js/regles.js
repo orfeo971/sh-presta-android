@@ -4,8 +4,6 @@
    Toutes les fonctions travaillent sur la « vue » d'une intervention : le dossier terrain reçu du serveur,
    auquel sont appliquées les actions encore en attente d'envoi (voir optimiste.js). */
 
-import { jourDe } from "./format.js";
-
 export const STATUTS = {
   creee: "Créée",
   planifiee: "Planifiée",
@@ -32,14 +30,6 @@ export const VOYANTS = { jaune: "Jaune", orange: "Orange", rouge: "Rouge" };
 export const PRIORITES = { basse: "Basse", moyenne: "Moyenne", haute: "Haute", critique: "Critique" };
 export const STATUTS_ANOMALIE = { ouverte: "Ouverte", analyse: "En analyse", cloturee: "Clôturée" };
 
-/** Instant prévu de l'intervention (heure de Guadeloupe, UTC−4 toute l'année), en millisecondes. */
-export function instantPrevu(i) {
-  const j = jourDe(i.date), h = String(i.heure_prevue || "").slice(0, 5);
-  if (!j || !h) return null;
-  const t = Date.parse(`${j}T${h}:00-04:00`);
-  return Number.isNaN(t) ? null : t;
-}
-
 /**
  * Arrivée au datacenter : le clic « Je suis arrivé au datacenter » ; à défaut (intervention commencée
  * avant ce bouton, saisie depuis le site), le premier geste fait sur place. Même règle que le serveur
@@ -56,18 +46,6 @@ export function arriveeAuDatacenter(v) {
     ...v.etapes.filter(e => [...SOUS_ETAPES, "intervention"].includes(e.etape)).map(e => e.valide_le)
   ].filter(Boolean).map(d => Date.parse(d)).filter(t => !Number.isNaN(t));
   return gestes.length ? { le: new Date(Math.min(...gestes)).toISOString(), clic: false } : null;
-}
-
-/**
- * Ponctualité, règle unique (comme le serveur, EN_RETARD_EXPR) : en retard si l'arrivée au datacenter
- * a lieu après l'heure prévue ; tant que personne n'est arrivé, dès que l'heure prévue est dépassée.
- */
-export function enRetard(v, maintenant = Date.now()) {
-  if (v.intervention.statut === "annulee") return false;
-  const p = instantPrevu(v.intervention);
-  if (p === null) return false;
-  const a = arriveeAuDatacenter(v);
-  return a ? Date.parse(a.le) > p : maintenant > p;
 }
 
 /** Faut-il d'abord signaler l'arrivée ? Pas pour une intervention déjà commencée sur place sans ce bouton. */

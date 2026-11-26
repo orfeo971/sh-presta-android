@@ -11,8 +11,8 @@ export const FILTRES = {
   annulees: { libelle: "Annulées", garde: i => i.statut === "annulee" }
 };
 
-/** Interventions passées : terminées, clôturées ou annulées. Une intervention encore ouverte, même en
-    retard, reste sur l'écran d'accueil. */
+/** Interventions passées : terminées, clôturées ou annulées. Une intervention encore ouverte reste
+    sur l'écran d'accueil. */
 export const passee = i => ["terminee", "validee", "annulee"].includes(i.statut);
 
 const normaliser = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");

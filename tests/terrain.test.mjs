@@ -185,35 +185,28 @@ test("requêtes : en-têtes, identifiants locaux résolus après création", () 
   assert.match(an.id, /^[A-Za-z0-9_-]{8,100}$/, "format accepté par le serveur");
 });
 
-/* ---------- ponctualité : seule l'arrivée au datacenter compte ---------- */
-import { enRetard, arriveeAuDatacenter, arriveeRequise, instantPrevu } from "../www/js/regles.js";
+/* ---------- arrivée au datacenter ---------- */
+import { arriveeAuDatacenter, arriveeRequise } from "../www/js/regles.js";
 
-test("ponctualité : à l'heure si l'arrivée a lieu avant l'heure prévue, quelle que soit l'heure au siège", () => {
+test("arrivée au datacenter : un clic, exigé avant les actions sur place", () => {
   const d = { ...dossier, intervention: { ...dossier.intervention, date: "2026-11-26T04:00:00.000Z", heure_prevue: "11:30:00" } };
-  const prevu = instantPrevu(d.intervention);
-  assert.equal(new Date(prevu).toISOString(), "2026-11-26T15:30:00.000Z", "11:30 heure de Guadeloupe");
-  const siege = creer("valider_etape", { interventionId: I, etape: "depart_siege" }, new Date("2026-11-26T15:19:00Z")); // 11:19, après l'ancienne limite de 11:15
+  const siege = creer("valider_etape", { interventionId: I, etape: "depart_siege" }, new Date("2026-11-26T15:19:00Z"));
   const arrivee = creer("valider_etape", { interventionId: I, etape: "arrivee_datacenter" }, new Date("2026-11-26T15:28:00Z")); // 11:28
   let v = appliquer(d, [siege]);
-  assert.equal(enRetard(v, Date.parse("2026-11-26T15:25:00Z")), false, "11:25, personne n'est encore arrivé mais l'heure n'est pas passée");
-  assert.equal(enRetard(v, Date.parse("2026-11-26T15:35:00Z")), true, "11:35 sans arrivée signalée");
   assert.equal(arriveeRequise(v), true);
   v = appliquer(d, [siege, arrivee]);
   assert.equal(arriveeRequise(v), false);
   assert.deepEqual(arriveeAuDatacenter(v), { le: "2026-11-26T15:28:00.000Z", clic: true });
-  assert.equal(enRetard(v, Date.parse("2026-11-26T17:00:00Z")), false, "arrivé à 11:28 : à l'heure pour de bon");
   assert.equal(v.intervention.statut, "en_cours");
 });
 
-test("ponctualité : arrivée après l'heure prévue = en retard ; actions bloquées avant l'arrivée", () => {
+test("arrivée au datacenter : actions bloquées tant qu'elle n'est pas signalée", () => {
   const d = { ...dossier, intervention: { ...dossier.intervention, date: "2026-11-26T04:00:00.000Z", heure_prevue: "11:30:00" } };
-  const v = appliquer(d, [creer("valider_etape", { interventionId: I, etape: "depart_siege" }), creer("valider_etape", { interventionId: I, etape: "arrivee_datacenter" }, new Date("2026-11-26T15:35:00Z"))]);
-  assert.equal(enRetard(v), true);
   const sansArrivee = appliquer(d, [creer("valider_etape", { interventionId: I, etape: "depart_siege" })]);
   assert.deepEqual(bloquants(sansArrivee, "verification_visuelle"), ["Signaler d'abord votre arrivée au datacenter", "Cocher « Rien à signaler » ou ajouter un signalement"]);
 });
 
-test("ponctualité : intervention commencée avant le bouton d'arrivée → premier geste sur place", () => {
+test("arrivée au datacenter : intervention commencée avant le bouton d'arrivée → premier geste sur place", () => {
   const d = { ...dossier, intervention: { ...dossier.intervention, date: "2026-11-26T04:00:00.000Z", heure_prevue: "11:30:00" } };
   const v = appliquer(d, [
     creer("valider_etape", { interventionId: I, etape: "depart_siege" }, new Date("2026-11-26T15:19:00Z")),
@@ -222,5 +215,4 @@ test("ponctualité : intervention commencée avant le bouton d'arrivée → prem
   ]);
   assert.equal(arriveeRequise(v), false, "déjà commencée : pas de clic exigé après coup");
   assert.deepEqual(arriveeAuDatacenter(v), { le: "2026-11-26T15:27:00.000Z", clic: false });
-  assert.equal(enRetard(v), false);
 });
