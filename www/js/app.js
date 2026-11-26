@@ -365,7 +365,8 @@ function corpsDepart(v, e) {
 function corpsDatacenter(v, e) {
   const i = v.intervention;
   if (!e.accessible && !e.validee) return `<p class="note">Disponible une fois la récupération au siège validée.</p>`;
-  let h = "";
+  /* actions faites au datacenter : sous-éléments de l'étape, reliés à elle par un trait vertical */
+  let h = sousEtapesRequises(i).length ? `<div class="sous-liste">` : "";
   for (const s of sousEtapesRequises(i)) {
     const cle = "s" + i.id + s;
     const fait = etapeValidee(v, s);
@@ -375,7 +376,8 @@ function corpsDatacenter(v, e) {
     if (ouvert) h += `<div class="sous-corps">${s === "chargement_ts4300" ? corpsTs4300(v, fait) : s === "verification_visuelle" ? corpsControles(v, fait) : corpsOperation(v, fait)}</div>`;
     h += `</div>`;
   }
-  if (!sousEtapesRequises(i).length) h += `<p class="note">Aucune tâche détaillée pour cette intervention.</p>`;
+  if (sousEtapesRequises(i).length) h += `</div>`;
+  else h += `<p class="note">Aucune tâche détaillée pour cette intervention.</p>`;
   if (!lecture(v, e)) h += boutonValider(v, "intervention", "Valider le passage au datacenter");
   return h;
 }

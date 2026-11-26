@@ -108,10 +108,18 @@ dt { color: var(--muted); } dd { margin: 0; }
 .chevron { color: var(--muted); font-size: 1.1rem; }
 .etape-corps { padding: 0 14px 16px; border-top: 1px solid var(--line); }
 /* sous-étapes du datacenter : séparées par un trait, pas d'encadré de plus dans la carte de l'étape */
-.sous { border-top: 1px solid var(--line); margin: 0 -14px; padding: 0 14px; }
+/* Actions faites au datacenter : sous-éléments de l'étape « Passage au datacenter ». Décalées et reliées
+   à l'étape par un trait vertical (dans l'axe de sa pastille), pastilles plus petites et seulement
+   cerclées, titres moins appuyés : on distingue d'un coup d'œil l'étape et ses actions. */
+.sous-liste { margin: 4px 0 6px 15px; padding-left: 16px; border-left: 2px solid var(--line); }
+.etape.validee .sous-liste { border-left-color: color-mix(in srgb, var(--fv) 45%, var(--line)); }
+.sous { border-top: 1px solid var(--line); }
 .sous:first-child { border-top: 0; }
-.sous-tete { padding: 12px 0; }
-.sous-tete .num { width: 26px; height: 26px; font-size: .85rem; }
+.sous-tete { padding: 11px 0; gap: 10px; }
+.sous-tete .num { width: 24px; height: 24px; font-size: .78rem; background: var(--paper); border: 2px solid var(--line); color: var(--muted); }
+.sous-tete .num.ok { background: var(--paper); border-color: var(--fv); color: var(--fv); }
+.sous-tete .num.actif { background: var(--paper); border-color: var(--accent); color: var(--accent); }
+.sous-tete b { font-weight: 600; font-size: .96rem; }
 .sous-corps { padding: 0 0 14px; }
 .bloquants { margin: 12px 0 0; padding: 10px 12px 10px 30px; border-radius: 10px; background: var(--fo-bg); color: var(--fo); font-size: .88rem; }
 .aide { font-size: .88rem; color: var(--blue); background: var(--blue-bg); padding: 8px 10px; border-radius: 10px; }
