@@ -119,6 +119,9 @@ dt { color: var(--muted); } dd { margin: 0; }
 .sous-tete .num { width: 24px; height: 24px; font-size: .78rem; background: var(--paper); border: 2px solid var(--line); color: var(--muted); }
 .sous-tete .num.ok { background: var(--paper); border-color: var(--fv); color: var(--fv); }
 .sous-tete .num.actif { background: var(--paper); border-color: var(--accent); color: var(--accent); }
+.sous-tete .num.retard { background: var(--paper); border-color: var(--fo); color: var(--fo); }
+div.sous-tete { display: flex; align-items: center; gap: 10px; }
+.arrivee { padding-top: 12px; }
 .sous-tete b { font-weight: 600; font-size: .96rem; }
 .sous-corps { padding: 0 0 14px; }
 .bloquants { margin: 12px 0 0; padding: 10px 12px 10px 30px; border-radius: 10px; background: var(--fo-bg); color: var(--fo); font-size: .88rem; }

@@ -4,6 +4,8 @@
    Toutes les fonctions travaillent sur la « vue » d'une intervention : le dossier terrain reçu du serveur,
    auquel sont appliquées les actions encore en attente d'envoi (voir optimiste.js). */
 
+import { jourDe } from "./format.js";
+
 export const STATUTS = {
   creee: "Créée",
   planifiee: "Planifiée",
@@ -17,6 +19,7 @@ export const ORDRE_STATUTS = ["creee", "planifiee", "en_cours", "terminee", "val
 
 export const ETAPES = {
   depart_siege: "Récupération au siège",
+  arrivee_datacenter: "Arrivée au datacenter",
   intervention: "Passage au datacenter",
   retour_siege: "Retour au siège",
   chargement_ts4300: "Cartouches TS4300",
@@ -28,6 +31,48 @@ export const SOUS_ETAPES = ["chargement_ts4300", "verification_visuelle", "anoma
 export const VOYANTS = { jaune: "Jaune", orange: "Orange", rouge: "Rouge" };
 export const PRIORITES = { basse: "Basse", moyenne: "Moyenne", haute: "Haute", critique: "Critique" };
 export const STATUTS_ANOMALIE = { ouverte: "Ouverte", analyse: "En analyse", cloturee: "Clôturée" };
+
+/** Instant prévu de l'intervention (heure de Guadeloupe, UTC−4 toute l'année), en millisecondes. */
+export function instantPrevu(i) {
+  const j = jourDe(i.date), h = String(i.heure_prevue || "").slice(0, 5);
+  if (!j || !h) return null;
+  const t = Date.parse(`${j}T${h}:00-04:00`);
+  return Number.isNaN(t) ? null : t;
+}
+
+/**
+ * Arrivée au datacenter : le clic « Je suis arrivé au datacenter » ; à défaut (intervention commencée
+ * avant ce bouton, saisie depuis le site), le premier geste fait sur place. Même règle que le serveur
+ * (ARRIVEE_EXPR). Renvoie { le: ISO, clic: bool } ou null.
+ */
+export function arriveeAuDatacenter(v) {
+  const clic = etapeDe(v, "arrivee_datacenter");
+  if (clic) return { le: clic.valide_le, clic: true };
+  const gestes = [
+    ...v.mouvements.map(m => m.horodatage),
+    ...v.controles.signalements.map(s => s.created_at),
+    ...v.anomalies.map(a => a.created_at),
+    ...v.materielPonctuel.map(m => m.utilise_le),
+    ...v.etapes.filter(e => [...SOUS_ETAPES, "intervention"].includes(e.etape)).map(e => e.valide_le)
+  ].filter(Boolean).map(d => Date.parse(d)).filter(t => !Number.isNaN(t));
+  return gestes.length ? { le: new Date(Math.min(...gestes)).toISOString(), clic: false } : null;
+}
+
+/**
+ * Ponctualité, règle unique (comme le serveur, EN_RETARD_EXPR) : en retard si l'arrivée au datacenter
+ * a lieu après l'heure prévue ; tant que personne n'est arrivé, dès que l'heure prévue est dépassée.
+ */
+export function enRetard(v, maintenant = Date.now()) {
+  if (v.intervention.statut === "annulee") return false;
+  const p = instantPrevu(v.intervention);
+  if (p === null) return false;
+  const a = arriveeAuDatacenter(v);
+  return a ? Date.parse(a.le) > p : maintenant > p;
+}
+
+/** Faut-il d'abord signaler l'arrivée ? Pas pour une intervention déjà commencée sur place sans ce bouton. */
+export const arriveeRequise = v =>
+  !etapeValidee(v, "arrivee_datacenter") && !etapeValidee(v, "intervention") && !SOUS_ETAPES.some(e => etapeValidee(v, e));
 
 /** Rien à récupérer au siège : l'étape 1 ne s'applique pas. */
 export const departApplicable = i => !!(i.inclut_cartouches || i.ponctuelle_materiel_a_recuperer);
@@ -85,6 +130,7 @@ export function bloquants(v, cle) {
   const departOk = !departApplicable(i) || etapeValidee(v, "depart_siege");
   if (cle === "intervention" || SOUS_ETAPES.includes(cle)) {
     if (!departOk) b.push("Valider d'abord la récupération au siège");
+    else if (arriveeRequise(v)) b.push("Signaler d'abord votre arrivée au datacenter");
   }
   if (cle === "chargement_ts4300") return b;
   if (cle === "verification_visuelle") {
@@ -149,7 +195,7 @@ export function statutApres(v, etape) {
   const i = v.intervention;
   const vers = (cible) => (ORDRE_STATUTS.indexOf(cible) > ORDRE_STATUTS.indexOf(i.statut) ? cible : i.statut);
   if (i.statut === "annulee") return i.statut;
-  if (etape === "depart_siege") return vers("en_cours");
+  if (etape === "depart_siege" || etape === "arrivee_datacenter") return vers("en_cours");
   if (etape === "intervention") return retourNecessaire(v) ? vers("en_cours") : vers("terminee");
   if (etape === "retour_siege") return vers("terminee");
   return i.statut;

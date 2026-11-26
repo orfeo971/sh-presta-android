@@ -1,7 +1,7 @@
 /* SH Presta Terrain : application du prestataire (écrans et événements).
    La logique (règles, file d'envoi, vue hors connexion, TS4300) est dans des modules purs testés. */
 import { esc, jourDe, heureDe, jourLisible, horodatage, ilya, aujourdhui, ecartJours, pluriel } from "./format.js";
-import { STATUTS, STATUT_TON, ETAPES, VOYANTS, PRIORITES, STATUTS_ANOMALIE, etapes, etapeValidee, bloquants, sousEtapesRequises, figee, departApplicable, avancement } from "./regles.js";
+import { STATUTS, STATUT_TON, ETAPES, VOYANTS, PRIORITES, STATUTS_ANOMALIE, etapes, etapeValidee, bloquants, sousEtapesRequises, figee, departApplicable, avancement, enRetard, arriveeAuDatacenter, arriveeRequise, instantPrevu } from "./regles.js";
 import { creer, idLocal, estLocal } from "./actions.js";
 import { appliquer } from "./optimiste.js";
 import { synchroniser, annulerCreation, delaiNouvelEssai, ARRET } from "./file.js";
@@ -275,7 +275,7 @@ function carteIntervention(i, { sansJour = false } = {}) {
     + `<span class="ci-tete"><b>${sansJour ? "" : esc(jourLisible(jourDe(i.date))) + " · "}${esc(heureDe(i.heure_prevue))}</b>${puce(STATUTS[statut] || statut, STATUT_TON[statut])}</span>`
     + `<span class="ci-dc">${esc(i.datacenter || "Datacenter à préciser")} <small class="muet">n° ${i.id}</small></span>`
     + `<span class="ci-pied">${i.ticket_hebergeur ? `<span>Ticket <span class="mono">${esc(i.ticket_hebergeur)}</span></span>` : `<span class="muet">Pas encore de ticket</span>`}`
-    + `${i.en_retard && !["terminee", "validee", "annulee"].includes(statut) ? `<span class="rouge">En retard</span>` : ""}`
+    + `${(v ? enRetard(v) : i.en_retard) && !["terminee", "validee", "annulee"].includes(statut) ? `<span class="rouge">En retard</span>` : ""}`
     + `${n ? `<span class="orange">⏳ ${n} en attente</span>` : ""}${pret ? `<span class="vert">✓ Prête hors connexion</span>` : ["creee", "planifiee", "en_cours"].includes(statut) ? `<span class="muet">Non téléchargée</span>` : ""}</span>`
     + (pc != null && pc > 0 && pc < 100 ? `<span class="progres"><i style="width:${pc}%"></i></span>` : "")
     + `</button>`;
@@ -294,7 +294,7 @@ function ecranIntervention() {
   const acces = v.acces[v.acces.length - 1];
   html += `<section class="card entete">`
     + `<div class="ci-tete"><h2>${esc(i.datacenter || "Datacenter à préciser")}</h2>${puce(STATUTS[i.statut], STATUT_TON[i.statut])}</div>`
-    + `<p class="grand">${esc(jourLisible(jourDe(i.date)))} à ${esc(heureDe(i.heure_prevue))}${resume && resume.en_retard && !["terminee", "validee", "annulee"].includes(i.statut) ? ` ${puce("En retard", "alerte")}` : ""}</p>`
+    + `<p class="grand">${esc(jourLisible(jourDe(i.date)))} à ${esc(heureDe(i.heure_prevue))}${enRetard(v) ? ` ${puce(arriveeAuDatacenter(v) ? "Arrivée en retard" : "En retard", "alerte")}` : ""}</p>`
     + `<dl>`
     + `<dt>Ticket hébergeur</dt><dd>${i.ticket_hebergeur ? `<b class="mono">${esc(i.ticket_hebergeur)}</b>` : `<span class="orange">Pas encore communiqué</span>`}</dd>`
     + (acces ? `<dt>Accès</dt><dd>${esc([acces.intervenant, acces.heure ? "à " + heureDe(acces.heure) : ""].filter(Boolean).join(" ")) || "—"}</dd>` : "")
@@ -365,8 +365,24 @@ function corpsDepart(v, e) {
 function corpsDatacenter(v, e) {
   const i = v.intervention;
   if (!e.accessible && !e.validee) return `<p class="note">Disponible une fois la récupération au siège validée.</p>`;
+  /* arrivée au datacenter : un clic, qui seul juge la ponctualité */
+  const arr = arriveeAuDatacenter(v);
+  if (arriveeRequise(v)) {
+    if (lecture(v, e)) return `<p class="note">Arrivée au datacenter non signalée.</p>`;
+    const p = instantPrevu(i);
+    return `<div class="arrivee"><p style="margin-top:0">Touchez ce bouton en arrivant sur place : l'heure est enregistrée, même sans réseau, et sert à juger la ponctualité${p ? ` (prévue à ${heureDe(i.heure_prevue)})` : ""}.</p>`
+      + `<button class="btn primary large" data-act="arrivee">Je suis arrivé au datacenter</button>`
+      + `<p class="note">Les actions sur place (cartouches, contrôles…) sont accessibles ensuite.</p></div>`;
+  }
   /* actions faites au datacenter : sous-éléments de l'étape, reliés à elle par un trait vertical */
-  let h = sousEtapesRequises(i).length ? `<div class="sous-liste">` : "";
+  let h = `<div class="sous-liste">`;
+  if (arr) {
+    const p = instantPrevu(i);
+    const ecart = p !== null ? Math.round((Date.parse(arr.le) - p) / 60000) : null;
+    const ecartTxt = ecart === null ? "" : ecart <= 0 ? (ecart === 0 ? " · à l'heure" : ` · ${-ecart} min avant l'heure prévue`) : ` · ${ecart} min après l'heure prévue`;
+    const et = v.etapes.find(x => x.etape === "arrivee_datacenter");
+    h += `<div class="sous"><div class="sous-tete"><span class="num ${ecart !== null && ecart > 0 ? "retard" : "ok"}">✓</span><span class="txt"><b>${arr.clic ? "Arrivée au datacenter" : "Arrivée (premier geste sur place)"}</b><small>${arr.clic && et && et._attente ? "en attente d'envoi · " : ""}${horodatage(arr.le)}${ecartTxt}</small></span></div></div>`;
+  }
   for (const s of sousEtapesRequises(i)) {
     const cle = "s" + i.id + s;
     const fait = etapeValidee(v, s);
@@ -376,8 +392,8 @@ function corpsDatacenter(v, e) {
     if (ouvert) h += `<div class="sous-corps">${s === "chargement_ts4300" ? corpsTs4300(v, fait) : s === "verification_visuelle" ? corpsControles(v, fait) : corpsOperation(v, fait)}</div>`;
     h += `</div>`;
   }
-  if (sousEtapesRequises(i).length) h += `</div>`;
-  else h += `<p class="note">Aucune tâche détaillée pour cette intervention.</p>`;
+  h += `</div>`;
+  if (!sousEtapesRequises(i).length) h += `<p class="note">Aucune tâche détaillée pour cette intervention.</p>`;
   if (!lecture(v, e)) h += boutonValider(v, "intervention", "Valider le passage au datacenter");
   return h;
 }
@@ -791,6 +807,13 @@ const ACTIONS = {
     if (cle === "depart_siege" && enLigne()) setTimeout(() => telechargerDossier(v.intervention.id), 1500);
   },
   "scanner": el => scannerEnContinu(el.dataset.contexte),
+  "arrivee": async () => {
+    const v = vueDe(etat.interventionId);
+    const h = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guadeloupe" });
+    if (!confirm(`Confirmer l'arrivée au datacenter à ${h} ?`)) return;
+    await agir("valider_etape", { interventionId: v.intervention.id, etape: "arrivee_datacenter", titre: ETAPES.arrivee_datacenter });
+    toast("Arrivée enregistrée à " + h + (enLigne() ? "" : " (envoi au retour du réseau)"), "ok");
+  },
   "choisir-cartouche": el => { const cid = Number(el.dataset.cid); etat.selection = etat.selection && etat.selection.cartoucheId === cid ? null : { cartoucheId: cid }; render(); },
   "emplacement": el => toucherEmplacement(Number(el.dataset.emp)),
   "placer-plan": async () => {
